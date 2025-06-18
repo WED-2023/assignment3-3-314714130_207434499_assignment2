@@ -22,9 +22,11 @@
 </template>
 
 <script>
-import { reactive } from 'vue';
+import { reactive, getCurrentInstance } from 'vue';
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength } from '@vuelidate/validators';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
 
 export default {
   name: "LoginPage",
@@ -40,19 +42,25 @@ export default {
     };
 
     const v$ = useVuelidate(rules, state);
+    const { appContext } = getCurrentInstance();
+    const globalProperties = appContext.config.globalProperties;
+    const router = useRouter();
 
     const login = async () => {
       if (await v$.value.$validate()) {
-        // קריאה לשרת
         try {
-          await window.axios.post('/login', {
+          await axios.post('http://localhost:3000/Login', {
             username: state.username,
             password: state.password
-          });
-          window.store.login(state.username);
-          window.router.push('/main');
+          }, { withCredentials: true });
+          globalProperties.store.dispatch('login', state.username);
+          router.push({ name: 'main' });
         } catch (err) {
-          window.toast("Login failed", err.response.data.message, "danger");
+          globalProperties.toast(
+            "Login failed",
+            err.response?.data?.message || err.message,
+            "danger"
+          );
         }
       }
     };

@@ -1,5 +1,7 @@
 import Main from "../pages/MainPage.vue";
 import NotFound from "../pages/NotFoundPage.vue";
+import FavoritesPage from "../pages/FavoritesPage.vue";
+import MyRecipesPage from "../pages/MyRecipesPage.vue";
 
 const routes = [
   {
@@ -25,7 +27,22 @@ const routes = [
   {
     path: "/recipe/:recipeId",
     name: "recipe",
-    component: () => import("../pages/RecipeViewPage.vue"),
+    component: () => import("../pages/RecipePage.vue"),
+  },
+  {
+    path: "/favorites",
+    name: "favorites",
+    component: FavoritesPage,
+  },
+  {
+    path: "/my-recipes",
+    name: "my-recipes",
+    component: MyRecipesPage,
+  },
+  {
+    path: "/family-recipes",
+    name: "family-recipes",
+    component: () => import("../pages/FamilyRecipesPage.vue"),
   },
   {
     path: "/:catchAll(.*)",
