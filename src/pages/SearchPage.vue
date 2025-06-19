@@ -80,11 +80,11 @@
       </div>
     </div>
 
-    <!-- Last search -->
-    <div v-if="store.lastSearch && store.lastSearch.query && !searched" class="card">
+    <!-- Last search - only show if user is logged in -->
+    <div v-if="username && lastSearch && lastSearch.query && !searched" class="card">
       <div class="card-body">
         <h3 class="card-title">Last Search</h3>
-        <p class="text-muted">Your last search was: {{ store.lastSearch.query }}</p>
+        <p class="text-muted">Your last search was: {{ lastSearch.query }}</p>
         <button class="btn btn-outline-primary" @click="loadLastSearch">
           View Last Search Results
         </button>
@@ -94,7 +94,8 @@
 </template>
 
 <script>
-import { ref,  getCurrentInstance } from 'vue';
+import { ref, computed } from 'vue';
+import { useStore } from 'vuex';
 import RecipePreview from '@/components/RecipePreview.vue';
 import axios from 'axios';
 
@@ -104,6 +105,7 @@ export default {
     RecipePreview
   },
   setup() {
+    const store = useStore();
     const searchQuery = ref('');
     const cuisine = ref('');
     const diet = ref('');
@@ -113,9 +115,10 @@ export default {
     const recipes = ref([]);
     const loading = ref(false);
     const searched = ref(false);
-    
-    const internalInstance = getCurrentInstance();
-    const store = internalInstance.appContext.config.globalProperties.store;
+
+    // Computed properties for better reactivity
+    const username = computed(() => store.getters.username);
+    const lastSearch = computed(() => store.getters.lastSearch);
 
     const cuisines = [
       'African', 'American', 'British', 'Cajun', 'Caribbean', 'Chinese',
@@ -157,8 +160,10 @@ export default {
         }
         searched.value = true;
         
-        // Save search parameters
-        store.saveLastSearch(params);
+        // Save search parameters only if user is logged in
+        if (username.value) {
+          store.dispatch('saveLastSearch', params);
+        }
       } catch (error) {
         console.error('Error searching recipes:', error);
       } finally {
@@ -167,13 +172,13 @@ export default {
     };
 
     const loadLastSearch = () => {
-      const lastSearch = store.lastSearch;
-      searchQuery.value = lastSearch.query;
-      cuisine.value = lastSearch.cuisine;
-      diet.value = lastSearch.diet;
-      intolerances.value = lastSearch.intolerances;
-      resultsPerPage.value = lastSearch.number;
-      sortBy.value = lastSearch.sort;
+      const lastSearchData = lastSearch.value;
+      searchQuery.value = lastSearchData.query;
+      cuisine.value = lastSearchData.cuisine;
+      diet.value = lastSearchData.diet;
+      intolerances.value = lastSearchData.intolerances;
+      resultsPerPage.value = lastSearchData.number;
+      sortBy.value = lastSearchData.sort;
       search();
     };
 
@@ -187,7 +192,8 @@ export default {
       recipes,
       loading,
       searched,
-      store,
+      username,
+      lastSearch,
       cuisines,
       diets,
       intoleranceOptions,

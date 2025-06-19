@@ -102,6 +102,8 @@ export default {
         // Clear user data when not logged in
         store.commit('setFavorites', []);
         store.commit('setLastWatchedRecipes', []);
+        store.commit('setLastSearch', {});
+        sessionStorage.removeItem('lastSearch');
       }
     });
 
@@ -109,14 +111,16 @@ export default {
     watch(() => username.value, async (newVal) => {
       if (newVal) {
         try {
-          await store.dispatch('fetchFavorites');
-          await fetchLastWatched();
+        await store.dispatch('fetchFavorites');
+        await fetchLastWatched();
         } catch (error) {
           console.error('Error fetching user data after login:', error);
         }
       } else {
         store.commit('setLastWatchedRecipes', []);
         store.commit('setFavorites', []);
+        store.commit('setLastSearch', {});
+        sessionStorage.removeItem('lastSearch');
       }
     });
 

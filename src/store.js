@@ -9,7 +9,7 @@ const store = createStore({
       server_domain: "http://localhost:3000",
       lastWatchedRecipes: JSON.parse(localStorage.getItem('lastWatchedRecipes') || '[]'),
       favorites: JSON.parse(localStorage.getItem('favorites') || '[]'),
-      lastSearch: JSON.parse(localStorage.getItem('lastSearch') || '{}'),
+      lastSearch: JSON.parse(sessionStorage.getItem('lastSearch') || '{}'),
       showCreateRecipeModal: false,
     };
   },
@@ -40,7 +40,7 @@ const store = createStore({
     },
     setLastSearch(state, searchParams) {
       state.lastSearch = searchParams;
-      localStorage.setItem('lastSearch', JSON.stringify(searchParams));
+      sessionStorage.setItem('lastSearch', JSON.stringify(searchParams));
     },
     setShowCreateRecipeModal(state, value) {
       state.showCreateRecipeModal = value;
@@ -55,7 +55,10 @@ const store = createStore({
         });
         
         if (response.status === 200) {
-          commit('setUsername', username);
+      commit('setUsername', username);
+          // Clear any previous session data
+          commit('setLastSearch', {});
+          sessionStorage.removeItem('lastSearch');
           console.log("login successful", username);
           return response.data;
         }
@@ -70,9 +73,11 @@ const store = createStore({
       } catch (error) {
         console.error("Logout error:", error);
       } finally {
-        commit('clearUsername');
+      commit('clearUsername');
         commit('setFavorites', []);
         commit('setLastWatchedRecipes', []);
+        commit('setLastSearch', {});
+        sessionStorage.removeItem('lastSearch');
         console.log("logout successful");
       }
     },

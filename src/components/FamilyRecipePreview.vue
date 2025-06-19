@@ -2,7 +2,7 @@
   <div class="recipe-preview card h-100" @click="navigateToRecipe">
     <div class="position-relative">
       <img 
-        :src="defaultImage" 
+        :src="getDishImage(recipe.family_member_name)" 
         class="card-img-top recipe-image" 
         :alt="recipe.family_member_name"
       >
@@ -37,7 +37,34 @@ export default {
   },
   setup(props) {
     const router = useRouter()
-    const defaultImage = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80'
+
+    // Function to get appropriate image based on dish name
+    const getDishImage = (dishName) => {
+      if (!dishName) return getDefaultImage();
+      
+      const name = dishName.toLowerCase();
+      
+      // Use reliable Unsplash images for specific dishes
+      if (name === 'apple pie') {
+        return 'https://images.unsplash.com/photo-1621743478914-cc8a86d7e7b5?auto=format&fit=crop&w=400&q=80';
+      }
+      
+      if (name === 'lasagna') {
+        return 'https://images.unsplash.com/photo-1574894709920-11b28e7367e3?auto=format&fit=crop&w=400&q=80';
+      }
+      
+      // Keep the current breakfast image
+      if (name === 'breakfast') {
+        return 'https://images.unsplash.com/photo-1506084868230-bb9d95c24759?auto=format&fit=crop&w=400&q=80';
+      }
+      
+      // Return default food image if no match found
+      return getDefaultImage();
+    };
+
+    const getDefaultImage = () => {
+      return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80';
+    };
 
     const navigateToRecipe = () => {
       const recipeId = props.recipe.id;
@@ -54,7 +81,7 @@ export default {
 
     return {
       navigateToRecipe,
-      defaultImage
+      getDishImage
     }
   }
 }
