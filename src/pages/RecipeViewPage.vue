@@ -1,126 +1,148 @@
 <template>
-    <div class="container">
-      <div v-if="recipe">
-        <div class="recipe-header mt-3 mb-4">
-          <h1>{{ recipe.title }}</h1>
-          <img :src="recipe.image" class="center" />
-        </div>
-        <div class="recipe-body">
-          <div class="wrapper">
-            <div class="wrapped">
-              <div class="mb-3">
-                <div>Ready in {{ recipe.readyInMinutes }} minutes</div>
-                <div>Likes: {{ recipe.aggregateLikes }} likes</div>
-              </div>
-              Ingredients:
-              <ul>
-                <li
-                  v-for="(r, index) in recipe.extendedIngredients"
-                  :key="index + '_' + r.id"
-                >
-                  {{ r.original }}
-                </li>
-              </ul>
-            </div>
-            <div class="wrapped">
-              Instructions:
-              <ol>
-                <li v-for="s in recipe._instructions" :key="s.number">
-                  {{ s.step }}
-                </li>
-              </ol>
-            </div>
-          </div>
-        </div>
-        <!-- <pre>
-        {{ $route.params }}
-        {{ recipe }}
-      </pre
-        > -->
-      </div>
+  <div class="container">
+    <div v-if="recipe">
+      <SpoonacularRecipeView 
+        v-if="isSpoonacularRecipe" 
+        :recipe="recipe" 
+      />
+      <SelfCreatedRecipeView 
+        v-else-if="isSelfCreatedRecipe" 
+        :recipe="recipe" 
+      />
+      <FamilyRecipeView 
+        v-else-if="isFamilyRecipe" 
+        :recipe="recipe" 
+      />
     </div>
-  </template>
-  
-  <script>
-  export default {
-    data() {
-      return {
-        recipe: null
-      };
-    },
-    async created() {
-      try {
-        let response;
-        // response = this.$route.params.response;
-  
-        try {
-          response = await this.axios.get(
-            // "https://test-for-3-2.herokuapp.com/recipes/info",
-            this.$root.store.server_domain + "/recipes/info",
-            {
-              params: { id: this.$route.params.recipeId }
-            }
-          );
-  
-          // console.log("response.status", response.status);
-          if (response.status !== 200) this.$router.replace("/NotFound");
-        } catch (error) {
-          console.log("error.response.status", error.response.status);
-          this.$router.replace("/NotFound");
-          return;
-        }
-  
-        let {
-          analyzedInstructions,
-          instructions,
-          extendedIngredients,
-          aggregateLikes,
-          readyInMinutes,
-          image,
-          title
-        } = response.data.recipe;
-  
-        let _instructions = analyzedInstructions
-          .map((fstep) => {
-            fstep.steps[0].step = fstep.name + fstep.steps[0].step;
-            return fstep.steps;
-          })
-          .reduce((a, b) => [...a, ...b], []);
-  
-        let _recipe = {
-          instructions,
-          _instructions,
-          analyzedInstructions,
-          extendedIngredients,
-          aggregateLikes,
-          readyInMinutes,
-          image,
-          title
-        };
-  
-        this.recipe = _recipe;
-      } catch (error) {
-        console.log(error);
-      }
+  </div>
+</template>
+
+<script>
+import SpoonacularRecipeView from '../components/SpoonacularRecipeView.vue'
+import SelfCreatedRecipeView from '../components/SelfCreatedRecipeView.vue'
+import FamilyRecipeView from '../components/FamilyRecipeView.vue'
+
+export default {
+  name: 'RecipeViewPage',
+  components: {
+    SpoonacularRecipeView,
+    SelfCreatedRecipeView,
+    FamilyRecipeView
+  },
+  data() {
+    return {
+      recipe: null,
+      recipeType: null // 'spoonacular', 'self', or 'family'
     }
-  };
-  </script>
-  
-  <style scoped>
-  .wrapper {
-    display: flex;
+  },
+  computed: {
+    isSpoonacularRecipe() {
+      return this.recipeType === 'spoonacular';
+    },
+    isSelfCreatedRecipe() {
+      return this.recipeType === 'self';
+    },
+    isFamilyRecipe() {
+      return this.recipeType === 'family';
+    }
+  },
+  methods: {
+    async fetchFamilyRecipe(recipeId) {
+      const response = await this.axios.get(
+        `${this.$root.store.server_domain}/users/familyRecipes`
+      );
+      if (response.status === 200) {
+        const familyRecipes = response.data;
+        const actualId = recipeId.replace('family_', '');
+        const familyRecipe = familyRecipes.find(r => r.recipe_id.toString() === actualId);
+        
+        if (familyRecipe) {
+          this.recipe = {
+            ...familyRecipe,
+            id: recipeId,
+            isFamily: true,
+            image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80'
+          };
+          this.recipeType = 'family';
+          return true;
+        }
+      }
+      return false;
+    },
+    
+    async fetchSelfCreatedRecipe(recipeId) {
+      const response = await this.axios.get(
+        `${this.$root.store.server_domain}/users/myRecipes`
+      );
+      if (response.status === 200) {
+        const myRecipe = response.data.find(r => r.id.toString() === recipeId);
+        if (myRecipe) {
+          this.recipe = {
+            ...myRecipe,
+            isSelfCreated: true
+          };
+          this.recipeType = 'self';
+          return true;
+        }
+      }
+      return false;
+    },
+    
+    async fetchSpoonacularRecipe(recipeId) {
+      const response = await this.axios.get(
+        `${this.$root.store.server_domain}/recipes/details/${recipeId}`
+      );
+      if (response.status === 200) {
+        this.recipe = response.data;
+        this.recipeType = 'spoonacular';
+        return true;
+      }
+      return false;
+    }
+  },
+  async created() {
+    try {
+      const recipeId = this.$route.params.recipeId;
+
+      // If it's a family recipe ID, only try family recipe fetch
+      if (recipeId.startsWith('family_')) {
+        const found = await this.fetchFamilyRecipe(recipeId);
+        if (!found) {
+          this.$router.replace("/NotFound");
+        }
+        return;
+      }
+
+      // For non-family recipes, first check self-created recipes
+      try {
+        const found = await this.fetchSelfCreatedRecipe(recipeId);
+        if (found) return;
+      } catch (error) {
+        console.error("Error checking self-created recipes:", error);
+      }
+
+      // If not found in self-created, try Spoonacular
+      try {
+        const found = await this.fetchSpoonacularRecipe(recipeId);
+        if (!found) {
+          this.$router.replace("/NotFound");
+        }
+      } catch (error) {
+        console.error("Error fetching recipe details:", error);
+        this.$router.replace("/NotFound");
+      }
+    } catch (error) {
+      console.error(error);
+      this.$router.replace("/NotFound");
+    }
   }
-  .wrapped {
-    width: 50%;
-  }
-  .center {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    width: 50%;
-  }
-  /* .recipe-header{
-  
-  } */
-  </style>
+}
+</script>
+
+<style scoped>
+.container {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+</style>
   

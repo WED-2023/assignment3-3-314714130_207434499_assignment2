@@ -81,7 +81,7 @@
     </div>
 
     <!-- Last search -->
-    <div v-if="store.lastSearch.query && !searched" class="card">
+    <div v-if="store.lastSearch && store.lastSearch.query && !searched" class="card">
       <div class="card-body">
         <h3 class="card-title">Last Search</h3>
         <p class="text-muted">Your last search was: {{ store.lastSearch.query }}</p>
@@ -147,8 +147,14 @@ export default {
           sort: sortBy.value
         };
 
-        const response = await axios.get(`${store.server_domain}/recipes/search`, { params });
+        const response = await axios.get(`${store.getters.server_domain}/recipes/search`, { params });
         recipes.value = response.data;
+        // Sort recipes client-side
+        if (sortBy.value === 'popularity') {
+          recipes.value.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+        } else if (sortBy.value === 'time') {
+          recipes.value.sort((a, b) => (a.readyInMinutes || 0) - (b.readyInMinutes || 0));
+        }
         searched.value = true;
         
         // Save search parameters

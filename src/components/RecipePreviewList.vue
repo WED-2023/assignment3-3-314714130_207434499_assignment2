@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div>
     <h3>{{ title }}</h3>
     
     <div v-if="loading" class="text-center py-5">
@@ -8,9 +8,9 @@
       </div>
     </div>
 
-    <div v-else-if="recipes.length > 0" class="row">
-      <div class="col" v-for="r in recipes" :key="r.id">
-        <RecipePreview class="recipePreview" :recipe="r" />
+    <div v-else-if="recipes && recipes.length > 0" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
+      <div class="col" v-for="recipe in recipes" :key="recipe.id">
+        <RecipePreview :recipe="recipe" />
       </div>
     </div>
     <div v-else class="text-center py-5">
@@ -21,6 +21,8 @@
 
 <script>
 import RecipePreview from "./RecipePreview.vue";
+import { computed } from 'vue';
+import { useStore } from 'vuex';
 
 export default {
   name: "RecipePreviewList",
@@ -41,11 +43,22 @@ export default {
       default: false,
     },
   },
+  setup() {
+    const store = useStore();
+    
+    return {
+      isLoggedIn: computed(() => store.getters.username),
+    };
+  }
 };
 </script>
 
 <style scoped>
 .container {
   min-height: 400px;
+}
+
+.row {
+  margin: 0;
 }
 </style>

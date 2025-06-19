@@ -1,19 +1,17 @@
 import { createApp } from 'vue';
 import App from './App.vue';
-import routes from './router/index';
+import router from './router/index';
 import axios from 'axios';
 import VueAxios from 'vue-axios';
-import { createRouter, createWebHistory } from 'vue-router';
 
 import 'bootstrap/dist/css/bootstrap.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 import 'bootstrap/dist/js/bootstrap.bundle.js';
 
 import store from './store';
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-});
+// Configure axios to include credentials
+axios.defaults.withCredentials = true;
 
 const app = createApp(App);
 

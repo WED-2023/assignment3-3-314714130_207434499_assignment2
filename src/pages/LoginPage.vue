@@ -25,7 +25,6 @@
 import { reactive, getCurrentInstance } from 'vue';
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength } from '@vuelidate/validators';
-import axios from 'axios';
 import { useRouter } from 'vue-router';
 
 export default {
@@ -49,11 +48,15 @@ export default {
     const login = async () => {
       if (await v$.value.$validate()) {
         try {
-          await axios.post('http://localhost:3000/Login', {
+          await globalProperties.store.dispatch('login', {
             username: state.username,
             password: state.password
-          }, { withCredentials: true });
-          globalProperties.store.dispatch('login', state.username);
+          });
+          globalProperties.toast(
+            "Login successful",
+            "Welcome back!",
+            "success"
+          );
           router.push({ name: 'main' });
         } catch (err) {
           globalProperties.toast(

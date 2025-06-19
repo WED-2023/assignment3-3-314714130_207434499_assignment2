@@ -59,8 +59,8 @@
               <h3 class="card-title">Ingredients</h3>
               <ul class="list-group list-group-flush">
                 <li 
-                  v-for="ingredient in recipe.extendedIngredients" 
-                  :key="ingredient.id"
+                  v-for="(ingredient, idx) in ingredients" 
+                  :key="ingredient.id || idx"
                   class="list-group-item d-flex justify-content-between align-items-center"
                 >
                   <span>
@@ -68,9 +68,9 @@
                   </span>
                   <button 
                     class="btn btn-sm btn-outline-primary"
-                    @click="toggleIngredient(ingredient.id)"
+                    @click="toggleIngredient(ingredient.id || idx)"
                   >
-                    <i class="bi" :class="isIngredientChecked(ingredient.id) ? 'bi-check-square' : 'bi-square'"></i>
+                    <i class="bi" :class="isIngredientChecked(ingredient.id || idx) ? 'bi-check-square' : 'bi-square'"></i>
                   </button>
                 </li>
               </ul>
@@ -83,17 +83,17 @@
           <div class="card">
             <div class="card-body">
               <h3 class="card-title">Instructions</h3>
-              <div v-if="recipe.analyzedInstructions && recipe.analyzedInstructions[0]">
+              <div v-if="recipe.analyzedInstructions && recipe.analyzedInstructions[0] && Array.isArray(recipe.analyzedInstructions[0].steps)">
                 <div 
                   v-for="step in recipe.analyzedInstructions[0].steps" 
-                  :key="step.number"
+                  :key="step.number || step.step"
                   class="mb-4"
                 >
                   <div class="d-flex">
                     <div class="step-number me-3">{{ step.number }}</div>
                     <div class="step-content">
                       <p>{{ step.step }}</p>
-                      <div v-if="step.equipment.length > 0" class="mt-2">
+                      <div v-if="step.equipment && step.equipment.length > 0" class="mt-2">
                         <small class="text-muted">
                           Equipment: {{ step.equipment.map(e => e.name).join(', ') }}
                         </small>
@@ -135,6 +135,7 @@ export default {
     const recipe = ref(null);
     const loading = ref(true);
     const checkedIngredients = ref(new Set());
+    const ingredients = ref([]);
 
     const fetchRecipe = async () => {
       try {
@@ -142,6 +143,17 @@ export default {
         const response = await axios.get(`${store.getters.server_domain}/recipes/details/${route.params.recipeId}`);
         recipe.value = response.data;
         store.dispatch('addToLastWatched', recipe.value);
+        // Try to fetch ingredients from the new endpoint for user recipes
+        try {
+          const ingRes = await axios.get(`${store.getters.server_domain}/users/ingredients/${route.params.recipeId}`);
+          if (Array.isArray(ingRes.data) && ingRes.data.length > 0) {
+            ingredients.value = ingRes.data;
+          } else {
+            ingredients.value = recipe.value.extendedIngredients || [];
+          }
+        } catch (e) {
+          ingredients.value = recipe.value.extendedIngredients || [];
+        }
       } catch (error) {
         console.error('Error fetching recipe:', error);
         toast('Error', 'Failed to load recipe', 'error');
@@ -181,7 +193,8 @@ export default {
       toggleIngredient,
       isIngredientChecked,
       startCooking,
-      addToMealPlan
+      addToMealPlan,
+      ingredients
     };
   }
 }

@@ -47,21 +47,61 @@ const store = createStore({
     }
   },
   actions: {
-    login({ commit }, username) {
-      commit('setUsername', username);
-      console.log("login", username);
+    async login({ commit }, { username, password }) {
+      try {
+        const response = await axios.post(`http://localhost:3000/Login`, {
+          username,
+          password
+        });
+        
+        if (response.status === 200) {
+          commit('setUsername', username);
+          console.log("login successful", username);
+          return response.data;
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+        throw error;
+      }
     },
-    logout({ commit }) {
-      console.log("logout");
-      commit('clearUsername');
+    async logout({ commit }) {
+      try {
+        await axios.post(`http://localhost:3000/Logout`);
+      } catch (error) {
+        console.error("Logout error:", error);
+      } finally {
+        commit('clearUsername');
+        commit('setFavorites', []);
+        commit('setLastWatchedRecipes', []);
+        console.log("logout successful");
+      }
     },
     addToLastWatched({ state, commit }, recipe) {
+      // Don't add family recipes or self-created recipes to last watched
+      if (recipe.isFamily || recipe.isSelfCreated || recipe.id.toString().startsWith('family_')) {
+        return;
+      }
+
+      // Only proceed if it's a Spoonacular recipe (numeric ID)
+      if (!recipe.id || isNaN(Number(recipe.id))) {
+        return;
+      }
+
       if (state.username) {
         // User is logged in, update on server
         axios.post(`${state.server_domain}/users/viewed`, { recipeId: recipe.id })
           .then(() => {
-            // Optionally, fetch the latest from server
-            // dispatch('fetchLastWatched');
+            // Update local state
+            const recipes = [...state.lastWatchedRecipes];
+            const index = recipes.findIndex(r => r.id === recipe.id);
+            if (index !== -1) {
+              recipes.splice(index, 1);
+            }
+            recipes.unshift(recipe);
+            if (recipes.length > 3) {
+              recipes.pop();
+            }
+            commit('setLastWatchedRecipes', recipes);
           })
           .catch(err => {
             console.error('Error marking recipe as viewed:', err);
@@ -90,6 +130,11 @@ const store = createStore({
         commit('setLastWatchedRecipes', response.data);
       } catch (error) {
         console.error('Error fetching last watched recipes:', error);
+        // If we get a 401, the session is invalid - clear the user
+        if (error.response && error.response.status === 401) {
+          commit('clearUsername');
+          commit('setFavorites', []);
+        }
         commit('setLastWatchedRecipes', []);
       }
     },
@@ -112,12 +157,21 @@ const store = createStore({
       commit('setLastSearch', searchParams);
     },
     async fetchFavorites({ state, commit }) {
+      if (!state.username) {
+        commit('setFavorites', []);
+        return;
+      }
       try {
         const response = await axios.get(`${state.server_domain}/users/favorites`);
         commit('setFavorites', response.data);
       } catch (error) {
         console.error('Error fetching favorites:', error);
-        throw error;
+        // If we get a 401, the session is invalid - clear the user
+        if (error.response && error.response.status === 401) {
+          commit('clearUsername');
+          commit('setLastWatchedRecipes', []);
+        }
+        commit('setFavorites', []);
       }
     },
     async fetchFamilyRecipes({ state }) {
@@ -131,7 +185,7 @@ const store = createStore({
     },
     async fetchMyRecipes({ state }) {
       try {
-        const response = await axios.get(`${state.server_domain}/users/recipes`);
+        const response = await axios.get(`${state.server_domain}/users/myRecipes`);
         return response.data;
       } catch (error) {
         console.error('Error fetching my recipes:', error);
@@ -140,7 +194,10 @@ const store = createStore({
     },
     async createRecipe({ state }, recipe) {
       try {
-        const response = await axios.post(`${state.server_domain}/recipes`, recipe);
+        const response = await axios.post(
+          `${state.server_domain}/users/create`,
+          recipe
+        );
         return response.data;
       } catch (error) {
         console.error('Error creating recipe:', error);
