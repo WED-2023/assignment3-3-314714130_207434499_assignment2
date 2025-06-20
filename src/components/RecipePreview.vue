@@ -17,6 +17,10 @@
           <span v-if="recipe.glutenFree" class="badge bg-warning">Gluten Free</span>
         </div>
         <div class="recipe-preview-footer">
+          <div v-if="isLoggedIn && recipe.viewed" class="viewed-indicator me-2">
+            <i class="bi bi-eye-fill"></i>
+            <span>Viewed</span>
+          </div>
           <div class="likes">
             <i class="bi bi-heart-fill"></i>
             <span>{{ recipe.popularity }}</span>
@@ -230,6 +234,23 @@ export default {
 .likes i {
   font-size: 0.9rem;
   filter: drop-shadow(0 1px 3px rgba(220, 53, 69, 0.3));
+}
+
+.viewed-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #6f42c1;
+  font-weight: 600;
+  background: rgba(111, 66, 193, 0.1);
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 0.85rem;
+}
+
+.viewed-indicator i {
+  font-size: 0.9rem;
+  filter: drop-shadow(0 1px 3px rgba(111, 66, 193, 0.3));
 }
 </style>
 

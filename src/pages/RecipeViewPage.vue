@@ -95,6 +95,20 @@ export default {
       if (response.status === 200) {
         this.recipe = response.data;
         this.recipeType = 'spoonacular';
+        
+        // Mark recipe as viewed if user is logged in
+        if (this.$root.store.username) {
+          try {
+            await this.axios.post(`${this.$root.store.server_domain}/user/viewed`, {
+              recipeId: recipeId
+            });
+            console.log("Recipe marked as viewed");
+          } catch (viewedError) {
+            console.error("Error marking recipe as viewed:", viewedError);
+            // Don't throw error here as it's not critical for the user experience
+          }
+        }
+        
         return true;
       }
       return false;

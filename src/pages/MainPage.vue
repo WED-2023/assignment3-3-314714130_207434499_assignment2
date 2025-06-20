@@ -68,6 +68,7 @@ export default {
         loadingRandomRecipes.value = true;
         const response = await axios.get(`${store.getters.server_domain}/recipes/random`);
         randomRecipes.value = response.data;
+        console.log('Random recipes with viewed status:', response.data);
       } catch (error) {
         console.error('Error fetching random recipes:', error);
       } finally {
@@ -122,6 +123,17 @@ export default {
         store.commit('setLastSearch', {});
         sessionStorage.removeItem('lastSearch');
       }
+    });
+
+    // Refresh random recipes when page becomes visible (e.g., returning from recipe view)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchRandomRecipes();
+      }
+    };
+    
+    onMounted(() => {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
     });
 
     return {

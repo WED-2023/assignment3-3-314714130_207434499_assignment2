@@ -94,7 +94,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import RecipePreview from '@/components/RecipePreview.vue';
 import axios from 'axios';
@@ -152,6 +152,7 @@ export default {
 
         const response = await axios.get(`${store.getters.server_domain}/recipes/search`, { params });
         recipes.value = response.data;
+        console.log('Search results with viewed status:', response.data);
         // Sort recipes client-side
         if (sortBy.value === 'popularity') {
           recipes.value.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
@@ -181,6 +182,28 @@ export default {
       sortBy.value = lastSearchData.sort;
       search();
     };
+
+    const refreshSearchResults = () => {
+      if (searched.value && recipes.value.length > 0) {
+        // Re-run the last search to get updated viewed status
+        search();
+      }
+    };
+
+    // Refresh data when page becomes visible (e.g., returning from recipe view)
+    onMounted(() => {
+      const handleVisibilityChange = () => {
+        if (!document.hidden && searched.value) {
+          refreshSearchResults();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Cleanup
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    });
 
     return {
       searchQuery,

@@ -55,6 +55,24 @@ export default {
         console.log("Recipe data received:", data)
         recipe.value = data
         
+        // Mark recipe as viewed if user is logged in
+        if (store.getters.username) {
+          try {
+            await fetch(`${store.getters.server_domain}/user/viewed`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              credentials: 'include',
+              body: JSON.stringify({ recipeId: recipeId })
+            })
+            console.log("Recipe marked as viewed")
+          } catch (viewedError) {
+            console.error("Error marking recipe as viewed:", viewedError)
+            // Don't throw error here as it's not critical for the user experience
+          }
+        }
+        
         // Add to last watched
         store.dispatch('addToLastWatched', recipe.value)
       } catch (error) {
